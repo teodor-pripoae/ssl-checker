@@ -2,3 +2,5 @@ demo.tape
 ssl-checker
 ssl-checker.log
 dist
+# Added by goreleaser init:
+dist/
