@@ -64,6 +64,14 @@ func TestDomain(domain, env string, timeO int, out chan<- Response) {
 	var resp Response
 	log.Debug().Msgf("SSL query for %v", domain)
 
+	port := "443"
+	if strings.Contains(domain, ":") {
+		parts := strings.Split(domain, ":")
+		domain = parts[0]
+		port = parts[1]
+	}
+	url := net.JoinHostPort(domain, port)
+
 	nDialer := net.Dialer{
 		Timeout: time.Duration(timeO) * time.Second,
 	}
@@ -71,7 +79,7 @@ func TestDomain(domain, env string, timeO int, out chan<- Response) {
 		NetDialer: &nDialer,
 	}
 
-	conn, err := d.Dial("tcp", domain+":443")
+	conn, err := d.Dial("tcp", url)
 	if err != nil {
 		log.Debug().Msgf("Error in d.Dial for domain %s", domain)
 		resp = Response{
