@@ -17,7 +17,7 @@ var fileTargetsCmd = &cobra.Command{
 		for _, e := range targetsList {
 			targets[filepath.Base(e)] = e
 		}
-		runQueries(targets, map[string][]string{})
+		runQueries(targets, map[string][]string{}, nil)
 	},
 }
 
@@ -31,7 +31,7 @@ var domainTargetsCmd = &cobra.Command{
 		targets := make(map[string][]string, 1)
 		targets["customDomains"] = targetsList
 
-		runQueries(map[string]string{}, targets)
+		runQueries(map[string]string{}, targets, nil)
 	},
 }
 

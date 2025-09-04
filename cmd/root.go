@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/x509"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -57,6 +58,19 @@ var rootCmd = &cobra.Command{
 			os.Exit(0)
 		}
 
+		caCertificates := []x509.Certificate{}
+		if viper.IsSet("ca_certificates") {
+			caCertFiles := viper.GetStringSlice("ca_certificates")
+			for _, caCertFile := range caCertFiles {
+				cert, err := loadCACertificate(caCertFile)
+				if err != nil {
+					log.Fatal().Msgf("Error while loading CA certificate from %s: %v", caCertFile, err)
+				}
+				caCertificates = append(caCertificates, *cert)
+			}
+			log.Debug().Msgf("Loaded %d CA certificates", len(caCertificates))
+		}
+
 		if viper.IsSet("queries") {
 			queries := viper.Get("queries")
 			fileTargets := map[string]string{}
@@ -87,7 +101,7 @@ var rootCmd = &cobra.Command{
 			log.Debug().Msgf("fileTargets is  : %v", fileTargets)
 			log.Debug().Msgf("domainTargets is: %v", domainTargets)
 
-			runQueries(fileTargets, domainTargets)
+			runQueries(fileTargets, domainTargets, caCertificates)
 
 		} else {
 			// Nothing to do
@@ -119,11 +133,11 @@ var listEnvs = &cobra.Command{
 	},
 }
 
-func runQueries(fileTargets map[string]string, domainTargets map[string][]string) {
+func runQueries(fileTargets map[string]string, domainTargets map[string][]string, caCertificates []x509.Certificate) {
 	if viper.GetBool("silent") {
 		fmt.Fprintln(os.Stderr, "Processing query!")
 	}
-	q := ui.NewModel(viper.GetInt("timeout"), viper.GetBool("silent"), fileTargets, domainTargets)
+	q := ui.NewModel(viper.GetInt("timeout"), viper.GetBool("silent"), fileTargets, domainTargets, caCertificates)
 	if err := tea.NewProgram(q).Start(); err != nil {
 		log.Fatal().Msgf("Error while running TUI program: %v", err)
 	}

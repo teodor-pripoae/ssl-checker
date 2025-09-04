@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bufio"
+	"crypto/x509"
 	"fmt"
 	"os"
 	"sort"
@@ -100,13 +101,14 @@ type Model struct {
 	proc *processor
 	keys *listKeyMap
 
-	list         *list.Model
-	progressBars []progress.Model
-	details      *domainDetails
-	exportFile   textinput.Model
+	list           *list.Model
+	progressBars   []progress.Model
+	details        *domainDetails
+	exportFile     textinput.Model
+	caCertificates []x509.Certificate
 }
 
-func NewModel(timeout int, silent bool, files map[string]string, customList map[string][]string) Model {
+func NewModel(timeout int, silent bool, files map[string]string, customList map[string][]string, caCertificates []x509.Certificate) Model {
 	var (
 		environments []string
 		progressBars []progress.Model
@@ -150,13 +152,14 @@ func NewModel(timeout int, silent bool, files map[string]string, customList map[
 	export.Width = 20
 
 	return Model{
-		cfg:          cfg,
-		proc:         proc,
-		keys:         keys,
-		list:         &lst,
-		progressBars: progressBars,
-		details:      details,
-		exportFile:   export,
+		cfg:            cfg,
+		proc:           proc,
+		keys:           keys,
+		list:           &lst,
+		progressBars:   progressBars,
+		details:        details,
+		exportFile:     export,
+		caCertificates: caCertificates,
 	}
 }
 
@@ -181,13 +184,13 @@ func (m Model) Init() tea.Cmd {
 				continue
 			}
 			m.proc.queries[env] += 1
-			go domains.TestDomain(domain, env, m.cfg.Timeout, m.proc.ch)
+			go domains.TestDomain(domain, env, m.cfg.Timeout, m.caCertificates, m.proc.ch)
 		}
 	}
 	for env, target := range m.cfg.DomainsQuery {
 		for _, domain := range target {
 			m.proc.queries[env] += 1
-			go domains.TestDomain(domain, env, m.cfg.Timeout, m.proc.ch)
+			go domains.TestDomain(domain, env, m.cfg.Timeout, m.caCertificates, m.proc.ch)
 		}
 	}
 

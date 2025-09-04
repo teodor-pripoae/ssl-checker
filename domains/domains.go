@@ -2,6 +2,7 @@ package domains
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
 	"math/big"
@@ -60,7 +61,7 @@ func (i Response) Title() string { return i.Domain }
 // Description is required by list.Model to display Item description
 func (i Response) Description() string { return i.Environment }
 
-func TestDomain(domain, env string, timeO int, out chan<- Response) {
+func TestDomain(domain, env string, timeO int, caCertificates []x509.Certificate, out chan<- Response) {
 	var resp Response
 	log.Debug().Msgf("SSL query for %v", domain)
 
@@ -77,6 +78,20 @@ func TestDomain(domain, env string, timeO int, out chan<- Response) {
 	}
 	d := tls.Dialer{
 		NetDialer: &nDialer,
+	}
+
+	if len(caCertificates) > 0 {
+		rootCAs, err := x509.SystemCertPool()
+		if err != nil || rootCAs == nil {
+			rootCAs = x509.NewCertPool()
+		}
+		for _, cert := range caCertificates {
+			rootCAs.AddCert(&cert)
+		}
+		d.Config = &tls.Config{
+			RootCAs:    rootCAs, // trust your provided certs
+			ServerName: domain,  // important for hostname verification
+		}
 	}
 
 	conn, err := d.Dial("tcp", url)
